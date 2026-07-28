@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate": "tsx tooling/generate.ts",
-    "validate": "tsx tooling/validate.ts"
+    "validate": "tsx tooling/validate.ts",
+    "sync-versions": "tsx tooling/sync-versions.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

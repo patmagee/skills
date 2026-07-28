@@ -1,0 +1,67 @@
+name: Release
+
+# Every push to main bumps the minor version across package.json,
+# plugin.json, and marketplace.json, commits and tags the bump, and
+# publishes a GitHub release. The version bump is what lets
+# `/plugin marketplace update` see that a new plugin version exists.
+#
+# Loop safety: the release commit is pushed with the default
+# GITHUB_TOKEN, and GitHub does not trigger workflows for pushes made
+# with that token. The `if` guard below is a second line of defense,
+# and also provides an escape hatch: include [skip release] in a merge
+# commit message to land a change without cutting a release.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: >-
+      !startsWith(github.event.head_commit.message, 'Release v') &&
+      !contains(github.event.head_commit.message, '[skip release]')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests and validation before releasing
+        run: |
+          npm test
+          npm run validate
+
+      - name: Bump minor version across manifests
+        id: bump
+        run: |
+          npm version minor --no-git-tag-version
+          npm run --silent sync-versions
+          npm run validate
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, tag, and push the release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json .claude-plugin/plugin.json .claude-plugin/marketplace.json
+          git commit -m "Release v${{ steps.bump.outputs.version }}"
+          git tag -a "v${{ steps.bump.outputs.version }}" -m "Release v${{ steps.bump.outputs.version }}"
+          git push origin main --follow-tags
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ steps.bump.outputs.version }}" --generate-notes

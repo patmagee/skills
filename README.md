@@ -109,6 +109,10 @@ To test changes to a skill before pushing, add your local checkout as a marketpl
 
 A local marketplace reads the working tree, so edits to a `SKILL.md` are picked up without a push. Remove it with `/plugin marketplace remove patmagee-marketplace` when you switch back to the GitHub source.
 
+## Releases
+
+Every merge to `main` automatically bumps the minor version, tags the commit, and publishes a GitHub release. The bumped version is written to `package.json`, `.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json` together, which is what lets `/plugin marketplace update` detect that a new plugin version is available. Do not bump versions by hand. To land a change without cutting a release, include `[skip release]` in the merge commit message.
+
 ## Usage
 
 Once installed, skills trigger in two ways: Claude invokes them automatically when a task matches the skill's description, or you invoke one explicitly by typing `/<skill-name>`. Trigger phrases and activation conditions are documented in each skill's `SKILL.md` frontmatter.
