@@ -1,0 +1,9 @@
+interface:
+  display_name: Two Pass Review
+  short_description: Use before requesting human review or merging, when one
+    review pass keeps missing a whole class of defect — deep semantic/contract
+    bugs on one side, mechanical/local nits (null-safety, unsafe casts, unused
+    deps, doc-vs-code drift, dead annotations, invalid generated specs) on the
+    other.
+policy:
+  allow_implicit_invocation: true

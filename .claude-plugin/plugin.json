@@ -20,6 +20,8 @@
   "skills": [
     "./skills/consensus-planning",
     "./skills/design-memory",
-    "./skills/ms-frizzle"
+    "./skills/dual-adversarial-review",
+    "./skills/ms-frizzle",
+    "./skills/two-pass-review"
   ]
 }

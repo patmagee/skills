@@ -1,0 +1,7 @@
+interface:
+  display_name: Dual Adversarial Review
+  short_description: Run two adversarial reviewers (Claude Opus + Codex) in
+    parallel against a spec, plan, or diff, then synthesize an accept/reject
+    table.
+policy:
+  allow_implicit_invocation: true
