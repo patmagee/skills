@@ -43,6 +43,76 @@ The inner `<skill-name>/` directory is what gets loaded as the skill. The outer 
 5. Add a `CLAUDE.md` with architecture notes, modification guides, and testing instructions
 6. Update this table with the new skill
 
+## Installing as a Plugin
+
+This repository is a Claude Code plugin marketplace. The marketplace manifest lives at `.claude-plugin/marketplace.json` and exposes one plugin, `patmagee-skills`, which bundles every skill in the table above.
+
+### Add the marketplace and install
+
+Run these commands inside Claude Code:
+
+```
+/plugin marketplace add patmagee/skills
+/plugin install patmagee-skills@patmagee-marketplace
+```
+
+The first command registers this GitHub repository as a marketplace named `patmagee-marketplace` (the name comes from `marketplace.json`, not the repository URL). The second command installs the plugin from it. After installation, every skill is available by its name, for example `/ms-frizzle` or `/two-pass-review`.
+
+### Update
+
+To pull the latest version of the plugin after new skills land:
+
+```
+/plugin marketplace update patmagee-marketplace
+```
+
+### Disable or remove
+
+```
+/plugin disable patmagee-skills@patmagee-marketplace
+/plugin uninstall patmagee-skills@patmagee-marketplace
+/plugin marketplace remove patmagee-marketplace
+```
+
+`disable` keeps the plugin installed but inactive. `uninstall` removes it. Removing the marketplace also removes its plugins.
+
+### Preconfigure for a team or project
+
+To make the marketplace and plugin available automatically for everyone working in a repository, add both keys to that repository's `.claude/settings.json` (or to `~/.claude/settings.json` for a single user):
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "patmagee-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "patmagee/skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "patmagee-skills@patmagee-marketplace": true
+  }
+}
+```
+
+Claude Code will prompt each person to trust the marketplace the first time they open the project.
+
+### Local development install
+
+To test changes to a skill before pushing, add your local checkout as a marketplace and install from it:
+
+```
+/plugin marketplace add /path/to/your/checkout
+/plugin install patmagee-skills@patmagee-marketplace
+```
+
+A local marketplace reads the working tree, so edits to a `SKILL.md` are picked up without a push. Remove it with `/plugin marketplace remove patmagee-marketplace` when you switch back to the GitHub source.
+
+## Releases
+
+Every merge to `main` automatically bumps the minor version, tags the commit, and publishes a GitHub release. The bumped version is written to `package.json`, `.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json` together, which is what lets `/plugin marketplace update` detect that a new plugin version is available. Do not bump versions by hand. To land a change without cutting a release, include `[skip release]` in the merge commit message.
+
 ## Usage
 
-These skills can be installed into Claude by pointing it at the skill directory. Trigger phrases and activation instructions are documented in each skill's `SKILL.md` frontmatter.
+Once installed, skills trigger in two ways: Claude invokes them automatically when a task matches the skill's description, or you invoke one explicitly by typing `/<skill-name>`. Trigger phrases and activation conditions are documented in each skill's `SKILL.md` frontmatter.

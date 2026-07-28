@@ -48,6 +48,10 @@ SKILL.md is always the entry point. It contains the orchestration instructions t
 
 Skills may generate runtime files (JSON session state, log files, output documents) during execution. These are created in a `planning/` or similar working directory at runtime — not checked into the repo. The `.gitignore` excludes common patterns.
 
+## Releases
+
+Versions are bumped automatically. On every merge to `main`, the release workflow (`.github/workflows/release.yml`) bumps the minor version in `package.json`, `plugin.json`, and `marketplace.json`, tags the commit, and publishes a GitHub release. Never bump these versions by hand in a PR; the validate CI job checks that all three stay in sync. Add `[skip release]` to a merge commit message to skip the release.
+
 ## Dependencies
 
 Most skills use Python 3 standard library only. Exceptions:
