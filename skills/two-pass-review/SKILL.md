@@ -1,0 +1,111 @@
+---
+name: two-pass-review
+description: >-
+  Use before requesting human review or merging, when one review pass keeps
+  missing a whole class of defect — deep semantic/contract bugs on one side,
+  mechanical/local nits (null-safety, unsafe casts, unused deps, doc-vs-code
+  drift, dead annotations, invalid generated specs) on the other. Triggers
+  "two-pass review", "layered review", "catch what my review misses", or a
+  prior review / Copilot finding things a Claude review skipped. Accepts
+  args: "--mode [dual|single]" (default single).
+---
+
+# Two-Pass Review
+
+## Overview
+
+A single reviewer optimizes for one thing and drops the other. A sharp *semantic* reviewer skims
+boilerplate and misses null-checks, doc drift, unused deps, and invalid generated specs; a
+*mechanical* linter never reaches cross-path contracts, atomicity, or tests that pass even when the
+code is broken. Run **two passes with opposite instructions** — one deep and low-noise, one
+exhaustive and noise-tolerant — then synthesize.
+
+**Core principle: never ask one reviewer to be both sharp and exhaustive — the framings conflict and
+the mechanical class silently gets dropped.**
+
+## When to use
+
+- Before requesting human review / merge on a diff or PR.
+- After a plan/spec, before implementation (`--mode dual` for the plan).
+- When a prior review (or Copilot/Cursor) surfaced defects your own review missed.
+- Not for trivial diffs (docs-only, one-line changes) — a single read is enough.
+
+## Args
+
+- `--mode single` **(default)** — Pass 1 is one Opus semantic reviewer.
+- `--mode dual` — Pass 1 is the two-reviewer adversarial panel (Claude Opus + Codex) from the
+  `dual-adversarial-review` skill. Reserve for high-risk changes: auth, permissions, migrations,
+  concurrency, public APIs, data-loss.
+
+Pass 2 (mechanical) runs identically in both modes.
+
+## Process
+
+1. **Identify the artifact** — working diff, PR, commit range, or plan file — plus the repo root and
+   any conventions docs the reviewers must respect (e.g. `docs/java-coding-conventions.md`,
+   `docs/testing-conventions.md`).
+2. **Dispatch both passes in ONE message** (they are independent — run concurrently):
+   - **Pass 1 — semantic.** `--mode single`: `Agent`, `subagent_type: general-purpose`, `model: opus`.
+     `--mode dual`: run the two semantic reviewers as in `dual-adversarial-review` (Claude Opus +
+     Codex). Prompt = **Pass 1 prompt** below.
+   - **Pass 2 — mechanical.** `Agent`, `subagent_type: general-purpose`, `model: sonnet`. Prompt =
+     **Pass 2 checklist** below.
+3. **Synthesize** — apply `superpowers:receiving-code-review`: merge both passes, dedupe, **verify
+   each finding against the code yourself**, drop false positives, order by severity. Note
+   convergence (both passes flagged it → usually real).
+4. **Report** the findings high→low with what you verified and the top remaining risks. This skill
+   reviews; it does not implement — hand fixes to the normal edit flow.
+
+## Pass 1 prompt — semantic (sharp, low-noise)
+
+> Adversarial semantic reviewer. Read `<artifact>` and **verify every claim against the real code**
+> (name the key files). Find: correctness bugs; cross-path / contract inconsistencies;
+> atomicity / idempotency gaps; concurrency / TOCTOU; API and HTTP-status semantics; and **test
+> quality** — tests that would pass even if the code broke, missing negative / boundary cases.
+> Do NOT hunt mechanical nits (a separate pass owns null-checks, casts, unused deps, doc typos, dead
+> code) — high signal only. Each finding: severity [BLOCKER/MAJOR/MINOR], file:line, why it's wrong,
+> concrete fix. Review only — do not implement.
+
+## Pass 2 checklist — mechanical (exhaustive, noise OK)
+
+> Mechanical reviewer. Walk **every changed hunk**. Report every local defect — noise is acceptable,
+> exhaustiveness is the goal. **Emit a verdict for EVERY changed file, even "clean"**, so no file is
+> skipped. Apply each lens:
+
+| Lens | Ask of every changed hunk |
+|---|---|
+| Null-safety | New field/param/return: can it be null? Deref guarded? Maps/collections defensively copied (`Map.copyOf`) and non-null? |
+| Cast / type | Narrow cast safe (e.g. `Long` vs `Number` from a driver/JSON)? Unchecked or raw generics? |
+| Dependencies | New build dep actually imported/used? (grep the module.) Unused import? |
+| Docs vs code | Every javadoc / comment / API description near the change is a **claim** — does it still match what the code does? |
+| Generated / config | OpenAPI / JSON-schema / YAML valid for its type (no `default:""` on a number)? Regenerated and in sync with annotations? Constraints (`minItems`, required, non-empty) documented? |
+| Dead code | Annotation that suppresses nothing (`@SuppressWarnings`), unreachable branch, unused field/method/param? |
+| Messages | Exception / log / error text matches the actual condition that triggers it? |
+| Injection into interpolated strings | Untrusted input concatenated into a string that a framework then interpolates/evaluates — Bean Validation message template (`buildConstraintViolationWithTemplate`), log format, SpEL/EL, or a query built by concatenation (SQL/Cypher/JPQL)? Must be escaped or parameterized, never raw-concatenated. |
+| Conventions | Matches the named conventions docs (naming, test style, formatting idioms)? |
+
+> Each finding: severity, file:line, one-line defect, concrete fix. Review only — do not implement.
+
+## Model & cost
+
+- Pass 1 single = **Opus** (reasoning-bound). Pass 2 = **Sonnet** (pattern-matchable, cheaper).
+  `--mode dual` adds a Codex reviewer to Pass 1.
+- Subagents return summaries only — keep the orchestrator context lean; relay the synthesized table,
+  not the raw reviews.
+
+## Common mistakes
+
+| Mistake | Fix |
+|---|---|
+| Merging both passes into one prompt | The mechanical class gets dropped. Two separate reviewers, opposite framing. |
+| No per-file verdict in Pass 2 | Boilerplate/generated files (DTOs, `build.gradle`, `*.yaml`) hide the mechanical bugs. Force a verdict per changed file. |
+| Folding in findings unverified | Reviewers — and you — are wrong sometimes. Verify against code first (`receiving-code-review`). |
+| Dual mode for routine diffs | Dual is for high-risk. Default single + mechanical covers most changes. |
+
+## Why two passes
+
+A sharp semantic pass and a mechanical pass are complementary, not redundant: the semantic pass
+catches the cross-path / contract / test-quality bugs a linter never reaches, while the mechanical
+pass catches the null-safety, doc-drift, unused-dep, dead-code, and invalid-generated-spec issues the
+semantic pass skims past — typically several times more of them. Opposite framings, one synthesis, is
+what closes the gap.
