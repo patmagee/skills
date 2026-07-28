@@ -19,6 +19,7 @@
   ],
   "skills": [
     "./skills/consensus-planning",
-    "./skills/design-memory"
+    "./skills/design-memory",
+    "./skills/ms-frizzle"
   ]
 }

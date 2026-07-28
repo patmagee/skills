@@ -1,0 +1,9 @@
+interface:
+  display_name: Ms Frizzle
+  short_description: Use when the user wants to learn or understand something
+    through hands-on experimentation and doesn't yet know what the spec or
+    deliverable should look like — "let's poke at X", "I want to understand how
+    Y actually works", "what would happen if", "field trip", or an explicit
+    /ms-frizzle.
+policy:
+  allow_implicit_invocation: true

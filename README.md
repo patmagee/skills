@@ -11,6 +11,7 @@ Each skill lives in its own directory and follows the Claude skill format: a `SK
 | --- | --- | --- |
 | [consensus-planning](skills/consensus-planning/SKILL.md) | Multi-agent consensus planning system. | model |
 | [design-memory](skills/design-memory/SKILL.md) | Manage a local vector store of design docs and decision records across all repos. | model |
+| [ms-frizzle](skills/ms-frizzle/SKILL.md) | Use when the user wants to learn or understand something through hands-on experimentation and doesn't yet know what the spec or deliverable should look like — "let's poke at X", "I want to understand how Y actually works", "what would happen if", "field trip", or an explicit /ms-frizzle. | model |
 <!-- SKILLS:END -->
 
 ## Skill Structure
