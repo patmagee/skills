@@ -40,6 +40,7 @@ SKILL.md is always the entry point. It contains the orchestration instructions t
 
 - **consensus-planning** — Multi-agent consensus planning. Spawns analyst agents with perspective-based analytical styles to solve problems through structured rounds of critique, revision, and review. See `skills/consensus-planning/CLAUDE.md` for architecture details.
 - **design-memory** — Cross-repo vector store for design docs and decision records. Indexes specs with YAML frontmatter and decision confidence tiers, then surfaces prior decisions during brainstorm sessions. Requires ChromaDB and Gemini embeddings. See `skills/design-memory/SKILL.md` for commands.
+- **ms-frizzle** — Directed experimentation for learning through hands-on probes when there is no spec yet. Structures a session as a field trip: one driving question, one falsifiable experiment per leg, a findings ledger, and a forced synthesis at the end. See `skills/ms-frizzle/README.md`.
 
 ## Runtime Artifacts
 

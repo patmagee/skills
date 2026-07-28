@@ -1,0 +1,195 @@
+---
+description: Use when the user wants to learn or understand something through
+  hands-on experimentation and doesn't yet know what the spec or deliverable
+  should look like — "let's poke at X", "I want to understand how Y actually
+  works", "what would happen if", "field trip", or an explicit /ms-frizzle. Not
+  for work with a known deliverable (use brainstorming / spec-driven flow) and
+  not for unbounded autonomous looping.
+alwaysApply: false
+---
+
+# Ms. Frizzle
+
+## Overview
+
+Directed experimentation: come to a concrete understanding of something through direct
+contact with the real thing, without an upfront spec. Take chances, make mistakes, get
+messy — but with a journal and a destination.
+
+**The unit of progress is understanding, not artifact.** Each leg converges on a *better
+question*, not a finished thing; any code is a probe, not the goal. The deliverable is the
+findings (and the scrappy work that proves them), and the compounded learning points to a
+solid place to start a real build later. This can hand off to a spec-driven or goal loop
+once the question is answered, but it never tries to become one.
+
+The learning comes from *doing* — acting on each idea the moment it appears. **A learning
+is not admitted unless a probe actually ran and produced a result you could have been wrong
+about.** Reading source or docs is reconnaissance to set up the next action, never the
+experiment itself.
+
+**Code is evidence, not deliverable.** Findings compound monotonically (a settled finding
+or dead end never regresses); probe code does not, and that's fine — let it rot, fork, or
+contradict from one leg to the next. The exception is code that turns out to be
+load-bearing for an eventual build; tag it in the ledger so it doesn't get lost.
+
+**Fan out the legwork.** You orchestrate; subagents do the grunt work and report
+conclusions, not dumps. Before the first leg, parallel scouts map unfamiliar territory.
+During the ride, hand a heavy probe's mechanics to a subagent so your own turns stay free to
+*act and judge*. Use the cheapest agent that fits: a read-only explorer for "where is X"
+lookups, a fuller subagent for a probe that builds or runs something. Delegation never
+changes the one-leg-at-a-time rhythm. **SUB-SKILL when available:**
+superpowers:dispatching-parallel-agents.
+
+This sits between two failure modes. It is **more guided than a goal loop**: one driving
+question, a falsifiable guess before every experiment, a findings ledger, a staleness
+tripwire, a fixed budget. It is **less prescriptive than spec-driven development**: no plan
+beyond the next leg, the question may mutate once, artifacts are decided at the end.
+
+Principles, not gates. Vocabulary: trip / leg / bus / journal / ledger.
+
+## The Trip
+
+### Board the bus
+
+1. **Name the driving question — exactly one.** It must be curiosity-shaped ("what happens
+   when…", "could we…", "why does…"), not deliverable-shaped. If the request arrives
+   deliverable-shaped, find the question underneath it and confirm it with the user.
+2. **Set the budget now.** Default: **6 legs or one working session**, whichever comes
+   first. State it in the journal header. The user can override at boarding or call the trip
+   any time. A named number is what makes the tripwires below actually bite.
+3. **Pick the bus** — where the mess lives: a git worktree (codebase experiments), a scratch
+   dir (greenfield probes), or a read-only live system (system exploration). The classroom
+   (real checkout, real systems) stays untouched.
+4. **Open the journal file now**, before the first experiment, and seed the ledger with the
+   driving question as the first open question.
+5. **Scout the territory first (codebase trips).** When the code is unfamiliar, dispatch
+   *parallel* subagents to map it before the first leg — where things live, the moving parts,
+   the conventions — reporting conclusions, not file dumps. Use a cheap read-only explorer
+   for the "where is X" lookups. This is orientation, not a leg. **REQUIRED SUB-SKILL:**
+   superpowers:dispatching-parallel-agents.
+
+### Ride — one leg at a time
+
+A leg is **one experiment with a falsifiable guess attached** — and an experiment *acts*: it
+produces a result you could be wrong about. Looking without doing isn't a leg. Never batch:
+a script that runs five probes at once is a survey, not a trip.
+
+1. **Pick the leg by expected information gain — and show your work.** For each open
+   question, score 1–3 how much its answer would change what you'd do next (3 = changes the
+   whole direction, 1 = nice to know). Record the scores in the ledger and pick the highest.
+   Writing the numbers is what stops you from rationalizing any next step as high-gain.
+2. **Write the guess first, and make it falsifiable.** Before acting, journal:
+   > **Guess:** I expect X. Specifically I predict [concrete observable]. If I instead see
+   > [Y], I'm wrong. Confidence: low / med / high.
+   No guess, no learning — surprise only exists against a stated prediction. Low confidence
+   is a signal to probe, not to skip.
+3. **Act — make direct contact:** run it, build it, break it, instrument it, change one thing
+   and watch. Prefer the cheapest experiment that can surprise you over the most thorough.
+   When an idea occurs, spike the smallest version that proves or breaks it rather than
+   reasoning about whether it'd work. If the only move you can think of is "read more," you've
+   stalled — turn your current belief into a probe and watch what it does.
+4. **Journal the leg immediately:** tried / expected / saw / learned. Crashes, weird output,
+   and dead ends are data — record them, don't apologize.
+5. **Update the ledger.** Move the question to a *settled finding* — citing the leg **and the
+   literal observed output** (a snippet, number, or error, not a paraphrase) — or to a *dead
+   end* (say why it's exhausted so it's never re-litigated). Add any new open questions. Tag
+   load-bearing probe code; everything else may rot.
+6. **Checkpoint with the user on triggers, not on a timer.** Surface to the user when, and
+   only when: (a) a guess is disproven, (b) two legs tie on information gain, (c) the next
+   leg would cost more than all prior legs combined, or (d) the question is mutating. Silence
+   between those triggers is fine, not a smell.
+
+**Delegate the execution, never the judgment.** Let a subagent run a heavy leg (build the
+probe, capture output, summarize) and report back; you still write the guess, read the
+result, and pick the next leg. **Run legs in parallel only if you can state in advance that
+no possible result of one would change whether you'd run the others.** If you can't, they're
+sequential — that sequencing is the whole point of the trip.
+
+A leg that sprouts three sub-problems is secretly a plan. Cut it to one question.
+
+### Watch the road — one breath after each leg
+
+- Driving question **answered** with evidence (including "no, and here's why") → head home.
+- Question **mutated** into a genuinely different question → journal this trip, offer to
+  re-board with the new one. **At most one re-board per trip** — a second mutation means the
+  territory is bigger than one trip: head home and hand off.
+- **Two consecutive legs taught nothing new** → propose heading home. More variations of a
+  settled answer are confidence theater.
+- **Budget spent** → head home and synthesize what you have, even if the map is incomplete.
+- The user can call the trip, either direction, any time.
+
+### Come home — cash it in
+
+The pile of legs does not synthesize itself. Coming home is a *forced synthesis*, not a
+sign-off:
+
+1. **Commit to a claim.** Answer the original driving question in one or two sentences, with
+   the evidence (which legs) attached.
+2. **Name the recommended starting point and why** — where a future build would start, which
+   probe code is worth salvaging, which findings constrain the design, which dead ends to
+   avoid.
+3. **Write the journal footer:** settled findings, dead ends, and the synthesis above.
+4. **Decide artifacts now** — never promised upfront: journal only / keep the salvageable
+   probe kit / write an ADR / seed a spec for brainstorming / hand off to a build loop.
+5. **Clean the bus** (drop the worktree/scratch) unless something is kept.
+
+## The Journal
+
+Write it **incrementally during the trip** — never composed at the end. The journal is the
+trip state: a fresh session resumes by reading it. Its spine is the **ledger** — what's
+still open, what's settled, what's a dead end.
+
+Path: `docs/field-trips/YYYY-MM-DD-<slug>.md` in the repo for repo trips, otherwise
+`~/.claude/field-trips/YYYY-MM-DD-<slug>.md`.
+
+```markdown
+# Field trip: <driving question>
+**Date:** … · **Bus:** <worktree | scratch dir | read-only live> · **Budget:** <N legs / session>
+
+## Ledger
+### Open questions
+- <question> — info-gain score (1–3): <n>, because <what its answer would change>
+### Settled findings
+- <finding> — evidence: Leg N, observed: `<literal output>`
+### Dead ends
+- <avenue> — exhausted because … (do not revisit)
+### Salvageable (load-bearing) code
+- <path / fragment> — proves <finding>, worth building on because …
+
+## Leg 1: <short name>
+- **Guess:** I expect … Specifically I predict … If I see … I'm wrong. Confidence: …
+- **Tried:** …
+- **Saw:** … (literal output)
+- **Learned:** …
+
+## Synthesis (written at home)
+- **Answer to the driving question:** … (evidence: Legs …)
+- **Recommended starting point:** … — salvage <code>, constrained by <findings>, avoid <dead ends>
+
+## What came home
+<journal only | probe kit kept at … | ADR at … | seed spec at … | handed off to build loop>
+```
+
+## Red Flags
+
+| About to… | Instead |
+|---|---|
+| Write one script covering all the experiments | One leg at a time; let each result pick the next leg |
+| Pick the next leg by novelty | Score open questions 1–3 on information gain; pick the max and record it |
+| Write a guess vague enough to never be wrong | State a concrete prediction and what result would disprove it |
+| Admit a finding you reasoned your way to | No finding without a probe that ran and literal output to cite |
+| Board without a budget | Default 6 legs / one session, stated in the header |
+| Answer the question by reading source | Make the behavior actually happen; read only to set up the probe |
+| Describing an idea instead of trying it | Spike the smallest version now — act first, assess after |
+| A leg that only looks, never touches | Every leg produces a result or changes something |
+| Protecting probe code you've grown attached to | Code is evidence — let it rot; tag only the load-bearing bits |
+| Re-investigating an exhausted avenue | Record it as a dead end the first time; check the ledger first |
+| Crawling unfamiliar code serially on the main thread | Fan discovery out to parallel scouts; keep your turns for acting |
+| Hand-running a heavy probe's boilerplate yourself | Delegate the mechanics; keep your turn for guess, result, next leg |
+| Firing parallel probes for convenience | Parallel only if no result would change whether you'd run the others |
+| Re-boarding on every question wobble | One re-board max; a second mutation → head home and hand off |
+| Pinging the user on a timer | Checkpoint only on the four triggers; silence otherwise is fine |
+| Save the write-up for the end | Journal after every leg; keep the ledger live |
+| Try a fourth variation of a settled answer | Two stale legs → propose heading home |
+| End by dumping the pile of findings | Force the synthesis: commit to a claim, name the starting point and what to salvage |
+| Promise a deliverable at boarding | Artifacts are decided at the end |
