@@ -315,6 +315,63 @@ def cmd_bundle(store, slug, global_):
           "on the attempt record")
 
 
+def validate_bundle_text(text):
+    positions = []
+    for section in BUNDLE_SECTIONS:
+        idx = text.find(section)
+        if idx == -1:
+            raise StoreError(f"bundle is missing required section '{section}'")
+        positions.append(idx)
+    if positions != sorted(positions):
+        raise StoreError(
+            "bundle sections are out of order; expected: " + ", ".join(BUNDLE_SECTIONS))
+    if len(text.splitlines()) > BUNDLE_SIZE_WARN_LINES:
+        print(f"warning: bundle exceeds {BUNDLE_SIZE_WARN_LINES} lines; "
+              "distillation should prioritize harder", file=sys.stderr)
+
+
+def acquire_lock(tdir):
+    lock = tdir / ".distill.lock"
+    if lock.exists():
+        age = time.time() - lock.stat().st_mtime
+        if age < LOCK_STALE_SECONDS:
+            raise StoreError(
+                f"distill already in progress for this topic (lock age {int(age)}s); "
+                "retry later or remove the stale .distill.lock")
+        lock.unlink()
+    lock.write_text(str(os.getpid()))
+    return lock
+
+
+def cmd_distill(store, slug, bundle_file, hook, cross):
+    bundle_path = Path(bundle_file)
+    if not bundle_path.is_file():
+        raise StoreError(f"bundle file not found: {bundle_file}")
+    text = bundle_path.read_text(encoding="utf-8")
+    validate_bundle_text(text)
+    if cross:
+        write_atomic(store / "global" / "bundle.md", text)
+        regenerate_index(store)
+        print("global bundle updated")
+        return
+    meta = load_topic(store, slug)
+    tdir = topic_dir(store, slug)
+    lock = acquire_lock(tdir)
+    try:
+        write_atomic(tdir / "bundle.md", text)
+        posts = topic_posts(store, slug)
+        meta["distilled_through_post_id"] = max(
+            (p.get("id", 0) for p in posts), default=0)
+        if hook:
+            meta["hook"] = hook
+        write_json_atomic(tdir / "topic.json", meta)
+    finally:
+        lock.unlink(missing_ok=True)
+    regenerate_index(store)
+    print(f"bundle for '{slug}' updated; "
+          f"distilled through post {meta['distilled_through_post_id']}")
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="experience.py", description=__doc__)
     p.add_argument("--store", default=DEFAULT_STORE,
@@ -346,6 +403,14 @@ def build_parser():
     sp.add_argument("--global", action="store_true", dest="global_",
                     help="print the cross-topic principles bundle")
 
+    sp = sub.add_parser("distill",
+                        help="install a new bundle written by the distiller")
+    sp.add_argument("topic", nargs="?")
+    sp.add_argument("--bundle-file", required=True)
+    sp.add_argument("--hook", help="update the topic's one-line index hook")
+    sp.add_argument("--cross", action="store_true",
+                    help="update the global cross-topic bundle instead")
+
     sub.add_parser("topics", help="list topics with counts")
     sub.add_parser("index", help="regenerate index.md")
     return p
@@ -368,6 +433,10 @@ def main(argv=None):
             if not args.global_ and not args.topic:
                 raise StoreError("bundle requires a topic slug or --global")
             cmd_bundle(store, args.topic, args.global_)
+        elif args.command == "distill":
+            if not args.cross and not args.topic:
+                raise StoreError("distill requires a topic slug or --cross")
+            cmd_distill(store, args.topic, args.bundle_file, args.hook, args.cross)
         elif args.command == "topics":
             cmd_topics(store)
         elif args.command == "index":

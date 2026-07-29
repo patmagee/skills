@@ -288,5 +288,118 @@ class TestThreadAndBundle(StoreTestCase):
         self.assertIn("topic slug or --global", err)
 
 
+VALID_BUNDLE = """## Transferable insights
+- Set GCOM_PROXY_URL before first run (post 1)
+
+## Confirmed constraints
+- model-builder reads GCOM_PROXY_URL at startup only (post 1)
+
+## Rejected hypotheses
+- FALSIFIED: restarting mid-onboard recovers tenant resolution (post 2)
+
+## Pitfalls
+- Silent 'gcom client disabled' log line is the only symptom (post 1)
+
+## Checks
+- Check FalkorDB node counts after onboarding (attempt 1)
+
+## Next steps
+- Try var set from the start on a fresh stack
+"""
+
+
+class TestDistill(StoreTestCase):
+    def seed_ready(self, slug="topic-a"):
+        self.create_topic(slug)
+        run_cli(self.store, "attempt", slug, "--json", json.dumps(VALID_ATTEMPT))
+        for _ in range(5):
+            run_cli(self.store, "post", slug, "--json", json.dumps(valid_post()))
+        return slug
+
+    def write_bundle_file(self, text=VALID_BUNDLE):
+        p = self.store / "new-bundle.md"
+        p.write_text(text)
+        return p
+
+    def test_distill_swaps_bundle_and_advances_watermark(self):
+        slug = self.seed_ready()
+        code, out, err = run_cli(self.store, "distill", slug,
+                                 "--bundle-file", str(self.write_bundle_file()))
+        self.assertEqual(code, 0, err)
+        self.assertIn("distilled through post 5", out)
+        meta = json.loads(
+            (self.store / "topics" / slug / "topic.json").read_text())
+        self.assertEqual(meta["distilled_through_post_id"], 5)
+        self.assertIn("Transferable insights",
+                      (self.store / "topics" / slug / "bundle.md").read_text())
+        index = (self.store / "index.md").read_text()
+        self.assertIn("bundle fresh", index)
+        self.assertNotIn("distill ready", index)
+
+    def test_distill_rejects_missing_section(self):
+        slug = self.seed_ready()
+        bad = VALID_BUNDLE.replace("## Pitfalls", "## Gotchas")
+        code, _, err = run_cli(self.store, "distill", slug,
+                               "--bundle-file", str(self.write_bundle_file(bad)))
+        self.assertEqual(code, 2)
+        self.assertIn("Pitfalls", err)
+
+    def test_distill_rejects_out_of_order_sections(self):
+        slug = self.seed_ready()
+        bad = VALID_BUNDLE.replace(
+            "## Transferable insights", "## ZZZ", 1).replace(
+            "## Next steps", "## Transferable insights", 1)
+        code, _, err = run_cli(self.store, "distill", slug,
+                               "--bundle-file", str(self.write_bundle_file(bad)))
+        self.assertEqual(code, 2)
+
+    def test_distill_updates_hook_when_given(self):
+        slug = self.seed_ready()
+        run_cli(self.store, "distill", slug, "--hook", "new sharper hook",
+                "--bundle-file", str(self.write_bundle_file()))
+        self.assertIn("new sharper hook", (self.store / "index.md").read_text())
+
+    def test_distill_refuses_when_locked(self):
+        slug = self.seed_ready()
+        lock = self.store / "topics" / slug / ".distill.lock"
+        lock.write_text("12345")
+        code, _, err = run_cli(self.store, "distill", slug,
+                               "--bundle-file", str(self.write_bundle_file()))
+        self.assertEqual(code, 2)
+        self.assertIn("in progress", err)
+
+    def test_distill_breaks_stale_lock(self):
+        slug = self.seed_ready()
+        lock = self.store / "topics" / slug / ".distill.lock"
+        lock.write_text("12345")
+        old = experience.time.time() - experience.LOCK_STALE_SECONDS - 10
+        experience.os.utime(lock, (old, old))
+        code, _, err = run_cli(self.store, "distill", slug,
+                               "--bundle-file", str(self.write_bundle_file()))
+        self.assertEqual(code, 0, err)
+
+    def test_distill_cross_writes_global_bundle(self):
+        code, out, err = run_cli(self.store, "distill", "--cross",
+                                 "--bundle-file", str(self.write_bundle_file()))
+        self.assertEqual(code, 0, err)
+        self.assertIn("global bundle updated", out)
+        self.assertTrue((self.store / "global" / "bundle.md").is_file())
+        self.assertIn("- global —", (self.store / "index.md").read_text())
+
+    def test_distill_requires_topic_or_cross(self):
+        code, _, err = run_cli(self.store, "distill",
+                               "--bundle-file", str(self.write_bundle_file()))
+        self.assertEqual(code, 2)
+        self.assertIn("topic slug or --cross", err)
+
+    def test_oversize_bundle_warns_but_succeeds(self):
+        slug = self.seed_ready()
+        big = VALID_BUNDLE + "\n".join(f"- filler line {i}" for i in range(160))
+        code, _, err = run_cli(self.store, "distill", slug,
+                               "--bundle-file", str(self.write_bundle_file(big)))
+        self.assertEqual(code, 0)
+        self.assertIn("exceeds", err)
+
+
 if __name__ == "__main__":
     unittest.main()
