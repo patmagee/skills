@@ -244,5 +244,49 @@ class TestPost(StoreTestCase):
         self.assertIn("distill ready", index)
 
 
+class TestThreadAndBundle(StoreTestCase):
+    def seed_with_posts(self, slug="topic-a", n=2):
+        self.create_topic(slug)
+        run_cli(self.store, "attempt", slug, "--json", json.dumps(VALID_ATTEMPT))
+        for _ in range(n):
+            run_cli(self.store, "post", slug, "--json", json.dumps(valid_post()))
+        return slug
+
+    def test_thread_prints_attempts_and_posts(self):
+        slug = self.seed_with_posts(n=2)
+        code, out, _ = run_cli(self.store, "thread", slug)
+        self.assertEqual(code, 0)
+        self.assertIn("## Attempts", out)
+        self.assertIn("## Posts", out)
+        self.assertIn("Cold-onboard dev stack 1729", out)
+        self.assertIn('"id": 2', out)
+        self.assertIn("distilled through post 0", out)
+
+    def test_bundle_missing_is_helpful_error(self):
+        slug = self.seed_with_posts()
+        code, _, err = run_cli(self.store, "bundle", slug)
+        self.assertEqual(code, 2)
+        self.assertIn("no bundle yet", err)
+
+    def test_bundle_prints_content_and_influence_footer(self):
+        slug = self.seed_with_posts()
+        bundle_path = self.store / "topics" / slug / "bundle.md"
+        bundle_path.write_text("## Transferable insights\ncontent here\n")
+        code, out, _ = run_cli(self.store, "bundle", slug)
+        self.assertEqual(code, 0)
+        self.assertIn("content here", out)
+        self.assertIn("influence:", out)
+
+    def test_global_bundle_missing_is_helpful_error(self):
+        code, _, err = run_cli(self.store, "bundle", "--global")
+        self.assertEqual(code, 2)
+        self.assertIn("no global bundle", err)
+
+    def test_bundle_requires_topic_or_global(self):
+        code, _, err = run_cli(self.store, "bundle")
+        self.assertEqual(code, 2)
+        self.assertIn("topic slug or --global", err)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -286,6 +286,35 @@ def cmd_topics(store):
         print("no topics yet")
 
 
+def cmd_thread(store, slug):
+    meta = load_topic(store, slug)
+    print(f"# {meta['title']} ({slug})")
+    print(f"distilled through post {meta.get('distilled_through_post_id', 0)}")
+    print("\n## Attempts")
+    for a in topic_attempts(store, slug):
+        print(json.dumps(a, ensure_ascii=False, indent=2))
+    print("\n## Posts")
+    for p in topic_posts(store, slug):
+        print(json.dumps(p, ensure_ascii=False, indent=2))
+
+
+def cmd_bundle(store, slug, global_):
+    if global_:
+        path = store / "global" / "bundle.md"
+        if not path.is_file():
+            raise StoreError("no global bundle yet; run the cross-topic distill flow first")
+    else:
+        load_topic(store, slug)
+        path = topic_dir(store, slug) / "bundle.md"
+        if not path.is_file():
+            raise StoreError(
+                f"topic '{slug}' has no bundle yet; run the distill flow "
+                "once the thread has posts")
+    print(path.read_text(encoding="utf-8"))
+    print('influence: when capturing this session, set "bundle_used": true '
+          "on the attempt record")
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="experience.py", description=__doc__)
     p.add_argument("--store", default=DEFAULT_STORE,
@@ -309,6 +338,14 @@ def build_parser():
     sp.add_argument("--json", required=True, dest="payload",
                     help="post as a JSON object (see references/schemas.md)")
 
+    sp = sub.add_parser("thread", help="print a topic's attempts and posts")
+    sp.add_argument("topic")
+
+    sp = sub.add_parser("bundle", help="print a distilled bundle")
+    sp.add_argument("topic", nargs="?")
+    sp.add_argument("--global", action="store_true", dest="global_",
+                    help="print the cross-topic principles bundle")
+
     sub.add_parser("topics", help="list topics with counts")
     sub.add_parser("index", help="regenerate index.md")
     return p
@@ -325,6 +362,12 @@ def main(argv=None):
             cmd_attempt(store, args.topic, args.payload)
         elif args.command == "post":
             cmd_post(store, args.topic, args.payload)
+        elif args.command == "thread":
+            cmd_thread(store, args.topic)
+        elif args.command == "bundle":
+            if not args.global_ and not args.topic:
+                raise StoreError("bundle requires a topic slug or --global")
+            cmd_bundle(store, args.topic, args.global_)
         elif args.command == "topics":
             cmd_topics(store)
         elif args.command == "index":
