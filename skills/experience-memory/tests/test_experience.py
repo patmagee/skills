@@ -167,5 +167,82 @@ class TestAttempt(StoreTestCase):
         self.assertIn("not valid JSON", err)
 
 
+def valid_post(attempt_id=1, stance="NEW", stance_post_id=None):
+    return {
+        "attempt_id": attempt_id,
+        "claim": "Cold onboarding requires the gcom proxy env var",
+        "load_bearing_assumption": "model-builder reads GCOM_PROXY_URL at startup",
+        "evidence": "startup log: 'gcom client disabled' when var unset",
+        "stance": stance,
+        "stance_post_id": stance_post_id,
+        "proposed_change": "Set GCOM_PROXY_URL before first run",
+        "predicted_outcome": "Fresh onboard with var set completes relationship rules",
+        "confidence": "medium",
+    }
+
+
+class TestPost(StoreTestCase):
+    def seed(self, slug="topic-a"):
+        self.create_topic(slug)
+        run_cli(self.store, "attempt", slug, "--json", json.dumps(VALID_ATTEMPT))
+        return slug
+
+    def test_post_new_appends_and_reports_counts(self):
+        slug = self.seed()
+        code, out, err = run_cli(self.store, "post", slug,
+                                 "--json", json.dumps(valid_post()))
+        self.assertEqual(code, 0, err)
+        self.assertIn("recorded post 1", out)
+        self.assertIn("1 undistilled", out)
+        self.assertNotIn("distill ready", out)
+
+    def test_post_new_must_not_set_stance_post_id(self):
+        slug = self.seed()
+        code, _, err = run_cli(self.store, "post", slug, "--json",
+                               json.dumps(valid_post(stance="NEW", stance_post_id=1)))
+        self.assertEqual(code, 2)
+        self.assertIn("NEW", err)
+
+    def test_post_disagree_requires_existing_stance_post_id(self):
+        slug = self.seed()
+        code, _, err = run_cli(self.store, "post", slug, "--json",
+                               json.dumps(valid_post(stance="DISAGREE", stance_post_id=9)))
+        self.assertEqual(code, 2)
+        self.assertIn("stance_post_id", err)
+
+    def test_post_disagree_with_valid_reference(self):
+        slug = self.seed()
+        run_cli(self.store, "post", slug, "--json", json.dumps(valid_post()))
+        code, out, err = run_cli(self.store, "post", slug, "--json",
+                                 json.dumps(valid_post(stance="DISAGREE", stance_post_id=1)))
+        self.assertEqual(code, 0, err)
+        self.assertIn("recorded post 2", out)
+
+    def test_post_requires_existing_attempt(self):
+        slug = self.seed()
+        code, _, err = run_cli(self.store, "post", slug, "--json",
+                               json.dumps(valid_post(attempt_id=99)))
+        self.assertEqual(code, 2)
+        self.assertIn("attempt_id", err)
+
+    def test_post_rejects_bad_confidence(self):
+        slug = self.seed()
+        bad = dict(valid_post(), confidence="certain")
+        code, _, err = run_cli(self.store, "post", slug, "--json", json.dumps(bad))
+        self.assertEqual(code, 2)
+        self.assertIn("confidence", err)
+
+    def test_threshold_notice_at_five_undistilled(self):
+        slug = self.seed()
+        for _ in range(4):
+            run_cli(self.store, "post", slug, "--json", json.dumps(valid_post()))
+        code, out, _ = run_cli(self.store, "post", slug,
+                               "--json", json.dumps(valid_post()))
+        self.assertEqual(code, 0)
+        self.assertIn("distill ready", out)
+        index = (self.store / "index.md").read_text()
+        self.assertIn("distill ready", index)
+
+
 if __name__ == "__main__":
     unittest.main()

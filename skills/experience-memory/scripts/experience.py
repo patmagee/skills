@@ -178,6 +178,57 @@ def cmd_attempt(store, slug, payload_json):
     print(f"recorded attempt {record['id']} in {slug}")
 
 
+POST_REQUIRED_FIELDS = [
+    "attempt_id", "claim", "load_bearing_assumption", "evidence",
+    "stance", "proposed_change", "predicted_outcome", "confidence",
+]
+
+
+def validate_post(payload, existing_post_ids, existing_attempt_ids):
+    require_fields(payload, POST_REQUIRED_FIELDS)
+    if payload["stance"] not in STANCES:
+        raise StoreError(f"stance must be one of {sorted(STANCES)}")
+    if payload["confidence"] not in CONFIDENCES:
+        raise StoreError(f"confidence must be one of {sorted(CONFIDENCES)}")
+    if payload["attempt_id"] not in existing_attempt_ids:
+        raise StoreError(
+            f"attempt_id {payload['attempt_id']} not found; record the attempt first")
+    if payload["stance"] == "NEW":
+        if payload.get("stance_post_id") is not None:
+            raise StoreError("stance NEW must not set stance_post_id")
+    else:
+        ref = payload.get("stance_post_id")
+        if ref not in existing_post_ids:
+            ids = sorted(existing_post_ids)
+            span = (f"thread has posts {ids[0]}-{ids[-1]}"
+                    if ids else "thread has no posts yet")
+            raise StoreError(
+                f"stance {payload['stance']} requires a valid stance_post_id; {span}")
+
+
+def cmd_post(store, slug, payload_json):
+    meta = load_topic(store, slug)
+    payload = parse_payload(payload_json)
+    posts = topic_posts(store, slug)
+    attempts = topic_attempts(store, slug)
+    validate_post(payload,
+                  {p.get("id") for p in posts},
+                  {a.get("id") for a in attempts})
+    record = dict(payload)
+    record["id"] = next_id(posts)
+    record["ts"] = utc_now()
+    record.setdefault("stance_post_id", None)
+    append_jsonl(topic_dir(store, slug) / "posts.jsonl", record)
+    regenerate_index(store)
+    posts.append(record)
+    und = undistilled_posts(meta, posts)
+    print(f"recorded post {record['id']} in {slug} "
+          f"({len(posts)} posts, {len(und)} undistilled)")
+    if len(und) >= DISTILL_THRESHOLD:
+        print(f"distill ready: topic '{slug}' has {len(und)} undistilled posts; "
+              "offer to run the distill flow")
+
+
 def regenerate_index(store):
     """Rebuild index.md: one line per topic, injected at SessionStart."""
     lines = []
@@ -253,6 +304,11 @@ def build_parser():
     sp.add_argument("--json", required=True, dest="payload",
                     help="attempt record as a JSON object")
 
+    sp = sub.add_parser("post", help="append a claim post to a topic thread")
+    sp.add_argument("topic")
+    sp.add_argument("--json", required=True, dest="payload",
+                    help="post as a JSON object (see references/schemas.md)")
+
     sub.add_parser("topics", help="list topics with counts")
     sub.add_parser("index", help="regenerate index.md")
     return p
@@ -267,6 +323,8 @@ def main(argv=None):
             cmd_create(store, args.topic, args.title, args.hook, tags)
         elif args.command == "attempt":
             cmd_attempt(store, args.topic, args.payload)
+        elif args.command == "post":
+            cmd_post(store, args.topic, args.payload)
         elif args.command == "topics":
             cmd_topics(store)
         elif args.command == "index":
