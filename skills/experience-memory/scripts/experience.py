@@ -142,6 +142,42 @@ def undistilled_posts(meta, posts):
     return [p for p in posts if p.get("id", 0) > watermark]
 
 
+def parse_payload(payload_json):
+    try:
+        payload = json.loads(payload_json)
+    except json.JSONDecodeError as e:
+        raise StoreError(f"payload is not valid JSON: {e}")
+    if not isinstance(payload, dict):
+        raise StoreError("payload must be a JSON object")
+    return payload
+
+
+def require_fields(payload, fields):
+    missing = [f for f in fields if not str(payload.get(f, "")).strip()]
+    if missing:
+        raise StoreError(f"missing or empty fields: {', '.join(missing)}")
+
+
+def validate_attempt(payload):
+    require_fields(payload, ["task", "outcome", "verification"])
+    if payload["outcome"] not in OUTCOMES:
+        raise StoreError(f"outcome must be one of {sorted(OUTCOMES)}")
+    if "bundle_used" in payload and not isinstance(payload["bundle_used"], bool):
+        raise StoreError("bundle_used must be a boolean")
+
+
+def cmd_attempt(store, slug, payload_json):
+    load_topic(store, slug)
+    payload = parse_payload(payload_json)
+    validate_attempt(payload)
+    attempts = topic_attempts(store, slug)
+    record = dict(payload)
+    record["id"] = next_id(attempts)
+    record["ts"] = utc_now()
+    append_jsonl(topic_dir(store, slug) / "attempts.jsonl", record)
+    print(f"recorded attempt {record['id']} in {slug}")
+
+
 def regenerate_index(store):
     """Rebuild index.md: one line per topic, injected at SessionStart."""
     lines = []
@@ -212,6 +248,11 @@ def build_parser():
                     help="one concrete line for the injected index")
     sp.add_argument("--tags", default="", help="comma-separated tags (repo, domain)")
 
+    sp = sub.add_parser("attempt", help="append an attempt record")
+    sp.add_argument("topic")
+    sp.add_argument("--json", required=True, dest="payload",
+                    help="attempt record as a JSON object")
+
     sub.add_parser("topics", help="list topics with counts")
     sub.add_parser("index", help="regenerate index.md")
     return p
@@ -224,6 +265,8 @@ def main(argv=None):
         if args.command == "create":
             tags = [t.strip() for t in args.tags.split(",") if t.strip()]
             cmd_create(store, args.topic, args.title, args.hook, tags)
+        elif args.command == "attempt":
+            cmd_attempt(store, args.topic, args.payload)
         elif args.command == "topics":
             cmd_topics(store)
         elif args.command == "index":

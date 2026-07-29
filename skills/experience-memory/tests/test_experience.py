@@ -109,5 +109,63 @@ class TestHelpers(StoreTestCase):
         self.assertEqual(leftovers, [])
 
 
+VALID_ATTEMPT = {
+    "repo": "asserts-adi", "branch": "fix/onboarding",
+    "task": "Cold-onboard dev stack 1729", "outcome": "partial",
+    "verification": "graph built but relationship rules empty",
+    "bundle_used": True,
+}
+
+
+class TestAttempt(StoreTestCase):
+    def test_attempt_appends_record_with_id_and_ts(self):
+        self.create_topic("topic-a")
+        code, out, err = run_cli(self.store, "attempt", "topic-a",
+                                 "--json", json.dumps(VALID_ATTEMPT))
+        self.assertEqual(code, 0, err)
+        self.assertIn("recorded attempt 1", out)
+        records = experience.read_jsonl(
+            self.store / "topics" / "topic-a" / "attempts.jsonl")
+        self.assertEqual(records[0]["id"], 1)
+        self.assertEqual(records[0]["outcome"], "partial")
+        self.assertTrue(records[0]["ts"])
+
+    def test_attempt_rejects_bad_outcome(self):
+        self.create_topic("topic-a")
+        bad = dict(VALID_ATTEMPT, outcome="great")
+        code, _, err = run_cli(self.store, "attempt", "topic-a",
+                               "--json", json.dumps(bad))
+        self.assertEqual(code, 2)
+        self.assertIn("outcome", err)
+
+    def test_attempt_rejects_missing_verification(self):
+        self.create_topic("topic-a")
+        bad = dict(VALID_ATTEMPT, verification="  ")
+        code, _, err = run_cli(self.store, "attempt", "topic-a",
+                               "--json", json.dumps(bad))
+        self.assertEqual(code, 2)
+        self.assertIn("verification", err)
+
+    def test_attempt_rejects_non_bool_bundle_used(self):
+        self.create_topic("topic-a")
+        bad = dict(VALID_ATTEMPT, bundle_used="yes")
+        code, _, err = run_cli(self.store, "attempt", "topic-a",
+                               "--json", json.dumps(bad))
+        self.assertEqual(code, 2)
+        self.assertIn("bundle_used", err)
+
+    def test_attempt_unknown_topic_errors(self):
+        code, _, err = run_cli(self.store, "attempt", "nope",
+                               "--json", json.dumps(VALID_ATTEMPT))
+        self.assertEqual(code, 2)
+        self.assertIn("unknown topic", err)
+
+    def test_attempt_invalid_json_payload(self):
+        self.create_topic("topic-a")
+        code, _, err = run_cli(self.store, "attempt", "topic-a", "--json", "{nope")
+        self.assertEqual(code, 2)
+        self.assertIn("not valid JSON", err)
+
+
 if __name__ == "__main__":
     unittest.main()
