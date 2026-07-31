@@ -1,0 +1,7 @@
+interface:
+  display_name: Experience Memory
+  short_description: "Knowledge-centric self-improvement (arXiv 2607.19592):
+    topic-keyed threads of evidence-grounded claims with stances, distilled into
+    bundles that seed future sessions via hooks."
+policy:
+  allow_implicit_invocation: true

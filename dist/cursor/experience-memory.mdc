@@ -1,22 +1,17 @@
 ---
-name: experience-memory
-short_description: >
-  Knowledge-centric self-improvement (arXiv 2607.19592): topic-keyed threads
-  of evidence-grounded claims with stances, distilled into bundles that seed
-  future sessions via hooks.
 description: >
   Knowledge-centric self-improvement for local Claude Code work, adapted from
   arXiv 2607.19592. Maintains a global store (~/.experience-memory/) of
   topic-keyed forum threads: evidence-grounded claims with stances, typed
   attempt records, and distilled bundles that seed future sessions. Use this
   skill when: a Stop-hook reminder says the session was substantive and worth
-  capturing; the user says "capture this session", "post experience",
-  "remember what we learned", "what have we learned about X", or "distill
-  topic X"; the SessionStart index shows a topic matching work about to start
-  (pull the bundle first); or a topic is marked distill ready. Covers the
-  capture flow (attempt record plus claims with stances), the pull flow
-  (bundle retrieval before matching work), and the distill flow (subagent
-  selection into a typed bundle).
+  capturing; the user says "capture this session", "post experience", "remember
+  what we learned", "what have we learned about X", or "distill topic X"; the
+  SessionStart index shows a topic matching work about to start (pull the bundle
+  first); or a topic is marked distill ready. Covers the capture flow (attempt
+  record plus claims with stances), the pull flow (bundle retrieval before
+  matching work), and the distill flow (subagent selection into a typed bundle).
+alwaysApply: false
 ---
 
 # experience-memory
