@@ -1,12 +1,15 @@
 {
   "name": "patmagee-skills",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A curated collection of Claude skills for multi-agent deliberation and more",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.4",
   "license": "MIT",
-  "author": { "name": "Patrick Magee", "email": "me@patrickmagee.dev" },
+  "author": {
+    "name": "Patrick Magee",
+    "email": "me@patrickmagee.dev"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
