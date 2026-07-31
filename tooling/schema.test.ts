@@ -53,6 +53,18 @@ describe("normalizeFrontmatter", () => {
     expect(fm.shortDescription).toBe("Custom short");
   });
 
+  it("trims short_description so YAML block scalars cannot break table rows", () => {
+    const fm = normalizeFrontmatter(
+      {
+        name: "x",
+        description: "Long description. Detail.",
+        short_description: "Folded scalar value\n",
+      },
+      "x",
+    );
+    expect(fm.shortDescription).toBe("Folded scalar value");
+  });
+
   it("throws when name is missing", () => {
     expect(() => normalizeFrontmatter({ description: "d." }, "x")).toThrow(/name/);
   });
