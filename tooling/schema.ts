@@ -61,7 +61,8 @@ export function normalizeFrontmatter(
     invocation: fm.invocation,
     harnesses: fm.harnesses,
     displayName: fm.display_name ?? titleCase(fm.name),
-    shortDescription: fm.short_description ?? firstSentence(fm.description),
+    shortDescription:
+      fm.short_description?.trim() ?? firstSentence(fm.description),
     disableModelInvocation: fm.invocation === "user",
   };
 }
