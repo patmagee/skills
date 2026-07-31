@@ -46,11 +46,21 @@ jobs:
 
       - name: Bump minor version across manifests
         id: bump
+        # Tags can exist that the manifests never reached (e.g. releases
+        # cut by hand before this automation existed). Keep bumping until
+        # the version is free on the remote, so the tag and release steps
+        # below cannot collide with a pre-existing tag.
         run: |
           npm version minor --no-git-tag-version
+          version="$(node -p "require('./package.json').version")"
+          while git ls-remote --exit-code --tags origin "v${version}" >/dev/null; do
+            echo "tag v${version} already exists on origin; bumping past it"
+            npm version minor --no-git-tag-version
+            version="$(node -p "require('./package.json').version")"
+          done
           npm run --silent sync-versions
           npm run validate
-          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Commit, tag, and push the release
         run: |
@@ -64,4 +74,6 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "v${{ steps.bump.outputs.version }}" --generate-notes
+        # --verify-tag makes a missing or unpushed tag fail here, loudly,
+        # instead of gh silently creating a tag from the default branch.
+        run: gh release create "v${{ steps.bump.outputs.version }}" --generate-notes --verify-tag
