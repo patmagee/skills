@@ -16,7 +16,7 @@ Every step of the investigation runs the same six beats, in order.
    carrying its state, then say what has not been checked yet. Keep this short: it
    is the material the human needs before they can evaluate anything.
 2. **Question.** Wait for the human to name the next question to investigate. You
-   may list gaps as plain facts if asked, since naming what has not been checked is
+   may list gaps as plain facts, since naming what has not been checked is
    not the same as proposing a hypothesis. If the human asks you for candidate
    questions, offer them, but record in the trail that the question was suggested
    rather than formed by the human.
@@ -64,9 +64,7 @@ applies:
 
 In `grafana/asserts-adi`, the convention is `production/on-call-notes/`.
 
-Do not store this resolution in a configuration file. Asking once per repository is
-cheaper than another piece of state to maintain, and the trail file itself is the
-only record that should exist.
+Do not store this resolution in a configuration file.
 
 ## The trail file
 
@@ -108,9 +106,7 @@ There are three ways in:
   far. Record everything already established as `accepted` rather than `reasoned`,
   because the human did not reason through it inside the loop.
 
-Re-read the tail of the trail file before each beat. Doing that is what keeps you
-anchored in the mode, rather than drifting back to narrating conclusions the way
-you normally would.
+Re-read the tail of the trail file before each beat.
 
 The human ends the session by saying so. At that point, report counts of findings
 by state and the full gap ledger, then ask for the human's synthesis. Record that
