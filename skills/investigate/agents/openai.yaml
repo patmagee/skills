@@ -1,0 +1,5 @@
+interface:
+  display_name: Investigate
+  short_description: Investigate with Claude gathering evidence and you drawing the conclusions.
+policy:
+  allow_implicit_invocation: false

@@ -22,6 +22,7 @@
     "./skills/design-memory",
     "./skills/dual-adversarial-review",
     "./skills/experience-memory",
+    "./skills/investigate",
     "./skills/ms-frizzle",
     "./skills/two-pass-review",
     "./skills/wait-what"
