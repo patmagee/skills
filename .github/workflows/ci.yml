@@ -22,6 +22,15 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Run skill Python tests
+        run: |
+          set -e
+          for dir in skills/*/tests; do
+            [ -d "$dir" ] || continue
+            echo "== $dir"
+            python3 -m unittest discover -s "$dir"
+          done
+
       - name: Validate skill frontmatter and manifest versions
         run: npm run validate
 
