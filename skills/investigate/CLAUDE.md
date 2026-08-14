@@ -12,10 +12,9 @@ The deliberate escalation, if drift is observed in practice, is to move beat
 three (Investigate) into a subagent whose only permitted output is evidence
 records. That would make the restraint structural rather than something
 Claude has to keep remembering. This is recorded as **deferred**, not as a
-gap: `docs/superpowers/specs/2026-08-14-investigate-design.md` defers it
-until instruction enforcement is observed to drift, on the view that building
-the subagent boundary before there is evidence of drift would be solving a
-problem that has not shown up yet.
+gap. The deferral holds until instruction enforcement is observed to drift,
+on the view that building the subagent boundary before there is evidence of
+drift would be solving a problem that has not shown up yet.
 
 ## What the linter checks, and what it cannot
 
