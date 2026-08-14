@@ -15,6 +15,7 @@ Each skill lives in its own directory and follows the Claude skill format: a `SK
 | [experience-memory](skills/experience-memory/SKILL.md) | Knowledge-centric self-improvement (arXiv 2607.19592): topic-keyed threads of evidence-grounded claims with stances, distilled into bundles that seed future sessions via hooks. | model |
 | [ms-frizzle](skills/ms-frizzle/SKILL.md) | Use when the user wants to learn or understand something through hands-on experimentation and doesn't yet know what the spec or deliverable should look like — "let's poke at X", "I want to understand how Y actually works", "what would happen if", "field trip", or an explicit /ms-frizzle. | model |
 | [two-pass-review](skills/two-pass-review/SKILL.md) | Use before requesting human review or merging, when one review pass keeps missing a whole class of defect — deep semantic/contract bugs on one side, mechanical/local nits (null-safety, unsafe casts, unused deps, doc-vs-code drift, dead annotations, invalid generated specs) on the other. | model |
+| [wait-what](skills/wait-what/SKILL.md) | Re-pitch the last message with context, in Simplified Technical English. | user |
 <!-- SKILLS:END -->
 
 ## Skill Structure

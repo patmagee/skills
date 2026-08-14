@@ -23,6 +23,7 @@
     "./skills/dual-adversarial-review",
     "./skills/experience-memory",
     "./skills/ms-frizzle",
-    "./skills/two-pass-review"
+    "./skills/two-pass-review",
+    "./skills/wait-what"
   ]
 }

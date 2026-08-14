@@ -44,6 +44,7 @@ SKILL.md is always the entry point. It contains the orchestration instructions t
 - **experience-memory** — Knowledge-centric self-improvement adapted from arXiv 2607.19592. A global store of topic-keyed forum threads (claims with AGREE/DISAGREE/SYNTHESIZE stances, typed attempt records) distilled into bundles that seed future sessions. Hook-prompted capture, index injection at SessionStart. Stdlib only. See `skills/experience-memory/CLAUDE.md`.
 - **ms-frizzle** — Directed experimentation for learning through hands-on probes when there is no spec yet. Structures a session as a field trip: one driving question, one falsifiable experiment per leg, a findings ledger, and a forced synthesis at the end. See `skills/ms-frizzle/README.md`.
 - **two-pass-review** — Pre-merge review in two passes with opposite framings: a deep semantic reviewer and an exhaustive mechanical checklist, merged into one verified findings list. `--mode dual` upgrades the semantic pass to the dual-adversarial-review panel. See `skills/two-pass-review/README.md`.
+- **wait-what** — User-invoked only. Re-pitches the previous message with the missing context first, in ASD-STE100 Simplified Technical English, using the vocabulary defined in the working directory's `CONTEXT.md`. Claude and Codex harnesses only, because a Cursor rule cannot express user-only invocation. See `skills/wait-what/README.md`.
 
 ## Runtime Artifacts
 
