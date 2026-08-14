@@ -22,6 +22,18 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Run skill Python tests
+        run: |
+          set -e
+          # Do not add "-t ." here: these tests directories have no __init__.py, and
+          # "-t ." makes unittest discover treat the repo root as the package root,
+          # which fails with "ImportError: Start directory is not importable".
+          for dir in skills/*/tests; do
+            [ -d "$dir" ] || continue
+            echo "== $dir"
+            python3 -m unittest discover -s "$dir"
+          done
+
       - name: Validate skill frontmatter and manifest versions
         run: npm run validate
 
