@@ -15,7 +15,7 @@ Handing investigation to an AI removes exactly the two steps that produce
 understanding: forming the next question, and investigating it. The human is
 left holding a summary rather than a picture. This skill keeps the
 investigating step with Claude, because speed there is the entire reason to
-use an AI, and gives the evaluating, questioning, and synthesizing steps back
+use an AI. It gives the evaluating, questioning, and synthesizing steps back
 to the human.
 
 ## When to use it

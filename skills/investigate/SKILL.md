@@ -21,13 +21,17 @@ Every step of the investigation runs the same six beats, in order.
    questions, offer them, but record in the trail that the question was suggested
    rather than formed by the human.
 3. **Investigate.** Gather evidence and report four things: the query you ran, the
-   values that came back, what those values rule out, and what you could not check,
-   with the reason why.
+   values that came back, which claim already in the findings table those values
+   eliminate, if any, citing it by id, and what you could not check, with the reason
+   why. Do not say what remains standing, and do not name a claim that is not already
+   in the findings table. If the evidence appears to eliminate something not yet in the
+   table, report the values and let the human name the claim.
 4. **Wait.** Ask the human what they make of the evidence, then stop. Send nothing
    else in that message.
 5. **Confirm or correct.** Acknowledge what the human got right. If their answer is
    vague, point at the specific rows or lines in the trail rather than supplying the
-   reading yourself.
+   reading yourself. If their answer is wrong, point at the specific row that does not
+   fit it and ask again, without stating the alternative reading yourself.
 6. **Record.** Append the claim to the trail in the human's own words, then return
    to beat one.
 
@@ -42,12 +46,22 @@ prevent.
 **Never answer your own question in the same message.** If you pose a question at beat
 four, that message ends there. This is the most likely way this skill fails.
 
+In an agentic harness a tool call also ends a message. The rule means the turn ends and
+control returns to the human, not merely that the message's text stops.
+
 ## Break-glass
 
-When the human asks you to skip the loop and give the answer directly, answer
-immediately. Do not argue about it, and do not raise the loop again later in the
-same session. Record that finding with state `accepted`, and say plainly, right
-then, that the close-out will list it as unverified.
+Break-glass is an explicit instruction to skip the loop, such as 'just tell me' or 'skip
+the loop and give me the answer directly'. A question about evidence already in front of
+the human, such as 'is that number high?' or 'what do you think?', is beat five, not
+break-glass. Answer it by pointing at the specific rows, not by supplying the reading.
+
+When the human actually invokes break-glass, answer immediately and do not argue about
+it. Record that finding with state `accepted`, and say plainly, right then, that the
+close-out will list it as unverified.
+
+Break-glass answers one question. Once you have answered it, return to beat one; it does
+not turn the loop off for the rest of the session.
 
 ## Where the trail goes
 
@@ -89,9 +103,28 @@ show on its own:
   against mutable state.
 - Each beat-three report maps to exactly one place in the file. The query and
   window become the target, query, and window fields of a new evidence record. The
-  values become that record's `returned` field. What the evidence rules out
-  becomes a finding row with state `refuted` citing that record. What you could
-  not check becomes a row in the "Not checked" gap ledger.
+  values become that record's `returned` field. What the evidence rules out is a
+  claim that already has a row in the findings table: change that row's state to
+  `refuted` and cite the new record, rather than adding a new row for it. What you
+  could not check becomes a row in the "Not checked" gap ledger.
+
+### Evidence citation forms
+
+Every evidence record carries exactly one of seven forms, plus `form` and
+`replayable`. Each form requires these keys, in addition to `form` and `replayable`:
+
+| form | required keys |
+|------|---------------|
+| code | `citation` |
+| metrics | `target`, `query`, `window`, `returned` |
+| logs | `target`, `query`, `window`, `returned` |
+| graph | `target`, `query`, `run`, `returned` |
+| shell | `command`, `context`, `run`, `returned` |
+| link | `url`, `points_at` |
+| conversation | `permalink`, `author`, `ts` |
+
+Windows are always absolute, never relative. A relative window drifts with the
+clock, which defeats the point of recording it.
 
 ## Entering and leaving
 
@@ -108,9 +141,10 @@ There are three ways in:
 
 Re-read the tail of the trail file before each beat.
 
-The human ends the session by saying so. At that point, report counts of findings
-by state and the full gap ledger, then ask for the human's synthesis. Record that
-synthesis verbatim: do not improve the wording, tighten it, or reorganize it. Set
+The human ends the session by saying so. At that point, report counts of findings by
+state, the full gap ledger, and the accepted findings themselves, each identified by
+its id and claim, then ask for the human's synthesis. Record that synthesis verbatim:
+do not improve the wording, tighten it, or reorganize it. Set
 `status: closed` in the frontmatter only once the synthesis is recorded. If the
 human ends the session without giving one, leave `status: open`.
 
@@ -139,6 +173,9 @@ one.
 The linter checks structure only. It cannot tell you whether you reported evidence
 raw or whether you answered your own question; only a human reading the transcript
 can catch that.
+
+Run it before you set `status: closed`, and again after any hand edit of a trail
+file.
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/investigate/scripts/lint_trail.py <trail.md>
