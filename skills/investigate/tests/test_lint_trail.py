@@ -205,6 +205,58 @@ class LintEvidenceTest(unittest.TestCase):
         text = trail(["| F1 | a claim | reasoned | E1 | human |"], evidence)
         self.assertEqual(lint_trail.lint(text), [])
 
+    def test_a_field_looking_line_inside_fenced_output_is_not_absorbed_as_a_field(self):
+        # Pasted command output can contain a line that looks like a record field,
+        # for example `- query: not really a field`. That line lives inside the
+        # fenced `returned` block, so it must not satisfy the real `query` key.
+        evidence = [
+            "### E1",
+            "",
+            "- form: metrics",
+            "- target: `grafanacloud-prom`",
+            "- window: `2026-08-14T00:00:00Z` to `2026-08-14T01:00:00Z`",
+            "- replayable: yes",
+            "- returned:",
+            "",
+            "  ```",
+            "  - query: not really a field",
+            "  ```",
+        ]
+        text = trail(["| F1 | a claim | reasoned | E1 | human |"], evidence)
+        self.assertIn("missing query", " ".join(lint_trail.lint(text)))
+
+    def test_a_heading_looking_line_inside_fenced_output_does_not_create_a_phantom_record(
+        self,
+    ):
+        # Pasted command output can contain a line that looks like a level-three
+        # heading, for example `### E7 header found in output`. That line lives
+        # inside the fenced `returned` block and must not start a new evidence
+        # record, whether or not the fence itself is indented.
+        evidence = [
+            "### E1",
+            "",
+            "- form: shell",
+            "- command: `ls`",
+            "- context: `prod-us-west-0`",
+            "- run: `2026-08-14T00:00:00Z`",
+            "- replayable: yes",
+            "- returned:",
+            "",
+            "```",
+            "### E7 header found in output",
+            "```",
+        ]
+        text = trail(["| F1 | a claim | reasoned | E1 | human |"], evidence)
+        self.assertEqual(lint_trail.lint(text), [])
+
+    def test_every_form_in_required_keys_lints_clean_with_its_minimal_record(self):
+        for form, keys in lint_trail.REQUIRED_KEYS.items():
+            evidence = ["### E1", "", f"- form: {form}"]
+            evidence += [f"- {key}: a value" for key in keys]
+            evidence.append("- replayable: yes")
+            text = trail(["| F1 | a claim | reasoned | E1 | human |"], evidence)
+            self.assertEqual(lint_trail.lint(text), [], msg=form)
+
 
 class LintSectionsTest(unittest.TestCase):
     def test_rejects_a_missing_gap_ledger(self):

@@ -31,14 +31,22 @@ def parse_frontmatter(text):
 
 
 def split_sections(body):
-    """Map each level-two heading to the raw text beneath it."""
+    """Map each level-two heading to the raw text beneath it.
+
+    Tracks fence state so a heading-looking line inside a fenced `returned`
+    block (indented or not) is content, never a section boundary.
+    """
     sections = {}
     current = None
+    in_fence = False
     for line in body.splitlines():
-        if line.startswith("## "):
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+        elif not in_fence and line.startswith("## "):
             current = line[3:].strip()
             sections[current] = []
-        elif current is not None:
+            continue
+        if current is not None:
             sections[current].append(line)
     return {name: "\n".join(lines) for name, lines in sections.items()}
 
@@ -61,17 +69,26 @@ def parse_evidence(text):
     """Return evidence records keyed by id, plus every id in document order.
 
     The id list keeps repeats so duplicates can be reported; the dict cannot.
+    Tracks fence state so a line inside a fenced `returned` block (indented or
+    not) is never read as a new record heading or a field.
     """
     records = {}
     ids = []
     current = None
+    in_fence = False
     for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         if line.startswith("### "):
             current = line[4:].strip()
             ids.append(current)
             records.setdefault(current, {})
-        elif current and line.strip().startswith("- ") and ":" in line:
-            key, _, value = line.strip()[2:].partition(":")
+        elif current and stripped.startswith("- ") and ":" in line:
+            key, _, value = stripped[2:].partition(":")
             records[current][key.strip()] = value.strip()
     return records, ids
 
