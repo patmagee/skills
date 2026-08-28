@@ -1,0 +1,6 @@
+interface:
+  display_name: Review Panel
+  short_description: Explicit-only review panel with independent correctness,
+    design, and security seats.
+policy:
+  allow_implicit_invocation: false

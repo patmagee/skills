@@ -1,6 +1,5 @@
 interface:
   display_name: Two Pass Review
-  short_description: Explicit-only layered review that runs a semantic pass and a
-    mechanical pass with opposite instructions, then synthesizes.
+  short_description: Deprecated explicit compatibility command for Review Panel.
 policy:
   allow_implicit_invocation: false
