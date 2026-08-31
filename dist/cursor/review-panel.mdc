@@ -1,0 +1,218 @@
+---
+description: "Explicit-only review panel with independent correctness, design,
+  and security seats. Invoke it by name only. A generic review request must not
+  trigger it. Modes: layered (default, one semantic plus one mechanical) and
+  stacked (explicit only, two semantic from different model families plus one
+  mechanical). Optional add-ons: --design and --security. Pi Flow users should
+  normally invoke reviewing-change-sets instead."
+alwaysApply: false
+---
+
+# Review Panel
+
+## Overview
+
+The correctness core uses reviewers with opposite instructions. The semantic reviewer checks deep
+behavior and contracts. The mechanical reviewer checks every changed hunk for local defects. The
+`stacked` mode adds a second semantic reviewer from another model family.
+
+Correctness review still assumes that the chosen design is right. Optional design and security seats
+apply different standards. The design seat judges the change against its goal or design principles.
+The security seat judges it against the trust model.
+
+**Core principle: give each reviewer one standard. Do not combine sharp semantic review, exhaustive
+mechanical review, design challenge, and security analysis in one prompt.**
+
+## Explicit-only
+
+Invoke this skill by name with `/review-panel`. It does not trigger from a generic "review this"
+request. The deprecated `/two-pass-review` command loads this workflow for compatibility. When Pi
+Flow is active, `reviewing-change-sets` is the review orchestrator. Use that flow instead of this
+skill, and do not run both orchestrators at the same checkpoint.
+
+## When to use
+
+- Before requesting human review or merging a diff or pull request, when you explicitly want this
+  review structure.
+- After a plan or specification, before implementation.
+- When a prior review surfaced a class of issue that another reviewer missed.
+- Not for trivial diffs such as a one-line documentation change.
+
+## Modes
+
+The mode selects the correctness core. The optional seats compose with either mode.
+
+- `--mode layered` **(default)** selects one semantic reviewer and one mechanical reviewer. Two
+  correctness seats.
+- `--mode stacked` **(explicit only)** selects the two-reviewer semantic panel from the
+  `dual-adversarial-review` skill, plus the mechanical reviewer. Three correctness seats. Reserve it
+  for high-risk changes and only use it when the caller accepts the added cost.
+- `--design` adds one design and architecture reviewer. Ask the caller for the change's goal or
+  intent, such as a design document or ticket. If none exists, record that fact and use the fallback
+  design principles in the design prompt. The seat must not infer intent from the as-built contract.
+- `--security` adds one security reviewer. It is off by default and runs only when the caller asks
+  for it.
+
+Examples include `--mode layered --design`, `--mode stacked --security`, and
+`--mode layered --design --security`.
+
+The mechanical pass runs identically in both modes. The optional seats also keep the same mandate in
+both modes.
+
+### Compatibility aliases
+
+- `--mode single` maps to `layered`.
+- `--mode dual` is ambiguous and no longer runs. The old `dual` silently added a third seat. Select
+  `stacked` explicitly for two semantic reviewers plus the mechanical reviewer. Otherwise, use
+  `layered`.
+
+The `layered` and `stacked` names match the corresponding Pi Flow review shapes. This compatibility
+note does not make this skill part of Pi Flow.
+
+## Process
+
+1. **Identify the review inputs.** Collect the working diff, pull request, commit range, or plan file.
+   Include the repository root, relevant conventions, approved requirements, and raw evidence.
+2. **Collect design intent when requested.** For `--design`, ask for the stated goal or intent. Prefer
+   a design document or ticket. A written statement from the caller is enough. If none exists, tell
+   the caller that the seat can judge structure against the fallback principles but cannot decide
+   whether the change solves the right product problem.
+3. **Prepare independent reviewer packets.** Give each reviewer raw evidence and only the standard it
+   needs:
+   - Semantic reviewers receive the approved behavior contract and relevant code.
+   - The mechanical reviewer receives every changed file and the named conventions.
+   - The design reviewer receives the goal or intent and the change. Do not substitute the as-built
+     contract for the goal. If no intent exists, provide the fallback principles and state that the
+     goal is unknown.
+   - The security reviewer receives the change, trust boundaries, actors, permissions, data classes,
+     and deployment context that are known. Mark missing trust-model facts instead of inventing them.
+   Never include another reviewer's verdict in a reviewer packet.
+4. **Dispatch every selected seat in one parallel batch.** Do not run a later seat after reading an
+   earlier verdict.
+   - For `layered`, dispatch one Opus semantic reviewer with the **Semantic prompt**.
+   - For `stacked`, dispatch the independent Claude Opus and Codex semantic reviewers defined by
+     `dual-adversarial-review`, using the **Semantic prompt** and the same raw evidence.
+   - Dispatch one Sonnet mechanical reviewer with the **Mechanical checklist**.
+   - If `--design` is present, dispatch one Opus design reviewer with the **Design seat prompt**.
+   - If `--security` is present, dispatch one Opus security reviewer with the **Security seat
+     prompt**.
+5. **Verify and synthesize.** Check every claim against the artifact and code. Remove false positives
+   and duplicates within each review category. Keep the result categories separate as described in
+   **Synthesis**.
+6. **Report only.** This skill does not implement fixes. Hand accepted changes to the normal edit
+   flow.
+
+## Semantic prompt
+
+> Adversarial semantic reviewer. Read `<artifact>` and verify every claim against the real code.
+> Name the key files. Find correctness bugs, cross-path or contract inconsistencies, atomicity or
+> idempotency gaps, concurrency or time-of-check/time-of-use problems, API and HTTP status semantics,
+> and weak tests. Weak tests include tests that pass when the code is broken and missing negative or
+> boundary cases. Do not hunt mechanical nits. A separate reviewer owns null checks, casts, unused
+> dependencies, documentation errors, and dead code. Keep the signal high. For each finding, report
+> severity `[BLOCKER|MAJOR|MINOR]`, location, why the behavior is wrong, and a concrete fix. Review
+> only. Do not implement.
+
+## Mechanical checklist
+
+> Mechanical reviewer. Walk every changed hunk. Report every local defect. Noise is acceptable
+> because exhaustiveness is the goal. Emit a verdict for every changed file, including `clean`, so
+> no file is skipped. Apply each lens below.
+
+| Lens | Ask of every changed hunk |
+|---|---|
+| Null safety | Can a new field, parameter, or return value be null? Is each dereference guarded? Are maps and collections copied and non-null where required? |
+| Cast and type | Is each narrow cast safe for driver or decoded data? Are there unchecked or raw generic types? |
+| Dependencies | Is each new build dependency imported and used? Are any imports unused? |
+| Documentation and code | Does each nearby comment, API description, and documentation claim still match the code? |
+| Quantified claims | Prove changed claims that use words such as `exactly`, `every`, `only`, `always`, or `never`. Do not trust a claim that a heuristic catches all unsafe cases. |
+| Generated files and configuration | Is each OpenAPI, JSON Schema, and YAML value valid for its type? Are generated files synchronized? Are constraints documented? |
+| Dead code | Does an annotation suppress nothing? Is a branch unreachable? Is a field, method, or parameter unused? |
+| Messages | Does each exception, log, or error message match the condition that produces it? |
+| Interpolated strings | Does untrusted input enter a message template, log format, expression language, SQL, Cypher, or JPQL string? Require escaping or parameter binding. |
+| Conventions | Does the change follow the named repository conventions for naming, tests, and formatting? |
+
+> For each finding, report severity, location, a one-line defect, and a concrete fix. Review only. Do
+> not implement.
+
+## Design seat prompt
+
+> Design and architecture reviewer. Your standard is `<goal-or-intent>`, not the as-built behavior
+> contract. If no goal or intent exists, say so and use this fallback standard: apply SOLID software
+> design principles and Don't Repeat Yourself (DRY); prefer composition for API objects; use
+> inheritance only when the types have a genuine substitutable API relationship and an interface is
+> the right contract. Assume the code works. Do not hunt correctness bugs or mechanical nits because
+> other reviewers own them.
+>
+> Challenge the design. Ask whether the public API is minimal and uses the right abstraction.
+> Examine whether responsibilities are split correctly and live in the right layer or module. Find
+> implementation details that leak to callers but should stay opaque. Question whether the contract
+> itself is wrong. Identify choices that a later phase will have to undo or regret.
+>
+> For each finding, report the concern, location, why it matters for the goal or fallback standard,
+> a concrete alternative shape, and one design severity: `[IRREVERSIBLE]` for a choice that cannot
+> reasonably change later, `[EXPENSIVE-LATER]` for a choice whose change cost will grow, or
+> `[PREFERENCE]` for a lower-cost design preference. Review only. Do not implement.
+
+## Security seat prompt
+
+> Security reviewer. Judge `<artifact>` against the trust model. Examine trust boundaries,
+> authorization and permissions, SQL/Cypher/log/template/expression-language injection, data exposed
+> in responses and logs, secret handling, server-side request forgery, multi-tenant isolation, and
+> abuse or denial-of-service paths. State any trust-model facts that are missing. Do not use another
+> reviewer's conclusions.
+>
+> For each finding, report severity `[CRITICAL|HIGH|MEDIUM|LOW]`, location, the exploit path, and a
+> concrete fix. Review only. Do not implement.
+
+## Synthesis
+
+Report findings in separate labelled sections:
+
+1. **Correctness findings.** Merge and deduplicate semantic and mechanical findings. Verify each
+   finding. Order them by `[BLOCKER|MAJOR|MINOR]`. Note when multiple correctness reviewers found the
+   same issue.
+2. **Design and architecture findings.** Report design findings with their design severity and
+   alternative shape. State whether the reviewer used explicit intent or fallback principles.
+3. **Security findings.** Report security findings with security severity, exploit path, and fix.
+4. **Shared seams.** Note where a design finding and a correctness finding concern the same API,
+   boundary, layer, or contract. Cross-reference the findings without merging them.
+
+Treat design and security findings as separate judgments, not correctness defects. Do not include
+them in the correctness defect table or translate their severity into correctness severity. A shared
+location does not make the findings duplicates because they answer different questions.
+
+## Model & cost
+
+| Selection | Seats | Model tier | Cost guidance |
+|---|---:|---|---|
+| `--mode layered` | 2 | Opus semantic, Sonnet mechanical | Default correctness core. |
+| `--mode stacked` | 3 | Opus and Codex semantic, Sonnet mechanical | Higher cost. Use only when explicitly selected. |
+| `--design` | +1 | Opus, same reasoning tier as semantic | Optional. Adds architecture analysis. |
+| `--security` | +1 | Opus, same reasoning tier as semantic | Optional and off by default. Adds trust-model analysis. |
+
+All selected seats run concurrently. Subagents return summaries only. The orchestrator reports the
+verified synthesis, not raw reviews.
+
+## Common mistakes
+
+| Mistake | Fix |
+|---|---|
+| Combining several seats in one prompt | Give each seat one standard and one independent prompt. |
+| Running optional seats after reading correctness findings | Dispatch every selected seat in one parallel batch. |
+| Giving the design seat only the as-built contract | Supply the goal or intent. If none exists, state that and use the fallback principles. |
+| Treating fallback principles as product intent | State that the seat can judge structure but cannot know whether the product goal is right. |
+| Asking the design seat for bugs or nits | Tell it to assume the code works and challenge only the design. |
+| Running security review by default | Add the seat only when the caller selects `--security`. |
+| Blending all severities into one defect table | Keep correctness, design, and security sections separate. Cross-reference shared seams. |
+| Giving one seat another seat's verdict | Give every seat its standard and raw evidence only. |
+| No per-file verdict in the mechanical pass | Require a verdict for every changed file. |
+| Accepting unverified findings | Check every claim against the artifact and code before reporting it. |
+| Treating `stacked` as routine | Use it only when the caller explicitly accepts the third correctness seat and its cost. |
+
+## Why the seats stay separate
+
+The semantic and mechanical passes find different correctness failures. The design seat asks whether
+the chosen shape is worth keeping even when it works. The security seat asks how an attacker or
+untrusted tenant can cross a boundary. Separate prompts preserve those different standards. Separate
+report sections keep their conclusions understandable.

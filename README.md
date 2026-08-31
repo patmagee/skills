@@ -15,7 +15,8 @@ Each skill lives in its own directory and follows the Claude skill format: a `SK
 | [experience-memory](skills/experience-memory/SKILL.md) | Knowledge-centric self-improvement (arXiv 2607.19592): topic-keyed threads of evidence-grounded claims with stances, distilled into bundles that seed future sessions via hooks. | model |
 | [investigate](skills/investigate/SKILL.md) | Investigate with Claude gathering evidence and you drawing the conclusions. | user |
 | [ms-frizzle](skills/ms-frizzle/SKILL.md) | Use when the user wants to learn or understand something through hands-on experimentation and doesn't yet know what the spec or deliverable should look like — "let's poke at X", "I want to understand how Y actually works", "what would happen if", "field trip", or an explicit /ms-frizzle. | model |
-| [two-pass-review](skills/two-pass-review/SKILL.md) | Explicit-only layered review that runs a semantic pass and a mechanical pass with opposite instructions, then synthesizes. | user |
+| [review-panel](skills/review-panel/SKILL.md) | Explicit-only review panel with independent correctness, design, and security seats. | user |
+| [two-pass-review](skills/two-pass-review/SKILL.md) | Deprecated explicit compatibility command for Review Panel. | user |
 | [wait-what](skills/wait-what/SKILL.md) | Re-pitch the last message with context, in Simplified Technical English. | user |
 <!-- SKILLS:END -->
 
@@ -59,7 +60,7 @@ Run these commands inside Claude Code:
 /plugin install patmagee-skills@patmagee-marketplace
 ```
 
-The first command registers this GitHub repository as a marketplace named `patmagee-marketplace` (the name comes from `marketplace.json`, not the repository URL). The second command installs the plugin from it. After installation, every skill is available by its name, for example `/ms-frizzle` or `/two-pass-review`.
+The first command registers this GitHub repository as a marketplace named `patmagee-marketplace` (the name comes from `marketplace.json`, not the repository URL). The second command installs the plugin from it. After installation, every skill is available by its name, for example `/ms-frizzle` or `/review-panel`.
 
 ### Update
 
