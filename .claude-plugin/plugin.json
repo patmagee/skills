@@ -25,6 +25,7 @@
     "./skills/investigate",
     "./skills/ms-frizzle",
     "./skills/review-panel",
+    "./skills/simplify",
     "./skills/two-pass-review",
     "./skills/wait-what"
   ]
