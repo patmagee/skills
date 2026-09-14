@@ -16,6 +16,7 @@ Each skill lives in its own directory and follows the Claude skill format: a `SK
 | [investigate](skills/investigate/SKILL.md) | Investigate with Claude gathering evidence and you drawing the conclusions. | user |
 | [ms-frizzle](skills/ms-frizzle/SKILL.md) | Use when the user wants to learn or understand something through hands-on experimentation and doesn't yet know what the spec or deliverable should look like — "let's poke at X", "I want to understand how Y actually works", "what would happen if", "field trip", or an explicit /ms-frizzle. | model |
 | [review-panel](skills/review-panel/SKILL.md) | Explicit-only review panel with independent correctness, design, and security seats. | user |
+| [simplify](skills/simplify/SKILL.md) | Apply focused cleanup to changed code without changing behavior. | user |
 | [two-pass-review](skills/two-pass-review/SKILL.md) | Deprecated explicit compatibility command for Review Panel. | user |
 | [wait-what](skills/wait-what/SKILL.md) | Re-pitch the last message with context, in Simplified Technical English. | user |
 <!-- SKILLS:END -->
